@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from './stores/authStore'
 import Layout from './components/Layout'
@@ -11,9 +12,28 @@ import ActivitiesPage from './pages/ActivitiesPage'
 import WorkflowsPage from './pages/WorkflowsPage'
 import IntegrationsPage from './pages/IntegrationsPage'
 import SettingsPage from './pages/SettingsPage'
+import toast from 'react-hot-toast'
 
 function App() {
   const { user } = useAuthStore()
+
+  useEffect(() => {
+    // Handle auth errors from URL hash
+    const handleAuthError = () => {
+      const hash = window.location.hash
+      if (hash.includes('error=access_denied')) {
+        toast.error('Email verification failed. Please try signing up again.')
+        // Clear the error from URL
+        window.history.replaceState({}, document.title, window.location.pathname)
+      } else if (hash.includes('error=otp_expired')) {
+        toast.error('Email verification link has expired. Please try signing up again.')
+        // Clear the error from URL
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    }
+
+    handleAuthError()
+  }, [])
 
   if (!user) {
     return <LoginPage />

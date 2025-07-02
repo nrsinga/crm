@@ -31,9 +31,23 @@ export default function AccountsPage() {
 
   const createMutation = useMutation({
     mutationFn: async (account: Partial<Account>) => {
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        throw new Error('User not authenticated')
+      }
+
+      // Prepare account data with required fields
+      const accountData = {
+        ...account,
+        owner_id: user.id,
+        created_by: user.id,
+        updated_by: user.id
+      }
+
       const { data, error } = await supabase
         .from('accounts')
-        .insert([{ ...account, owner_id: (await supabase.auth.getUser()).data.user?.id }])
+        .insert([accountData])
         .select()
         .single()
 
@@ -46,15 +60,28 @@ export default function AccountsPage() {
       toast.success('Account created successfully')
     },
     onError: (error: any) => {
+      console.error('Account creation error:', error)
       toast.error(error.message || 'Failed to create account')
     }
   })
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, ...account }: Partial<Account> & { id: string }) => {
+      // Get the current user
+      const { data: { user }, error: userError } = await supabase.auth.getUser()
+      if (userError || !user) {
+        throw new Error('User not authenticated')
+      }
+
+      // Prepare update data
+      const updateData = {
+        ...account,
+        updated_by: user.id
+      }
+
       const { data, error } = await supabase
         .from('accounts')
-        .update(account)
+        .update(updateData)
         .eq('id', id)
         .select()
         .single()
@@ -69,6 +96,7 @@ export default function AccountsPage() {
       toast.success('Account updated successfully')
     },
     onError: (error: any) => {
+      console.error('Account update error:', error)
       toast.error(error.message || 'Failed to update account')
     }
   })
@@ -87,6 +115,7 @@ export default function AccountsPage() {
       toast.success('Account deleted successfully')
     },
     onError: (error: any) => {
+      console.error('Account deletion error:', error)
       toast.error(error.message || 'Failed to delete account')
     }
   })

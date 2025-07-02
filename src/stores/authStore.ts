@@ -38,12 +38,26 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
       })
 
       if (error) throw error
 
-      set({ user: data.user })
-      toast.success('Account created successfully!')
+      // Check if user needs email confirmation
+      if (data.user && !data.session) {
+        toast.success('Account created! Please check your email to confirm your account.', {
+          duration: 6000
+        })
+        return
+      }
+
+      // If session exists, user is automatically signed in
+      if (data.session) {
+        set({ user: data.user })
+        toast.success('Account created and signed in successfully!')
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to create account')
       throw error
@@ -69,6 +83,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       supabase.auth.onAuthStateChange((event, session) => {
         set({ user: session?.user || null, loading: false })
+        
+        // Handle successful email confirmation
+        if (event === 'SIGNED_IN' && session) {
+          toast.success('Email confirmed! Welcome to your CRM.')
+        }
       })
     } catch (error) {
       set({ loading: false })
